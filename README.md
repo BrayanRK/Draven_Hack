@@ -191,3 +191,12 @@ MIT License
 BrayanRK  
 https://github.com/BrayanRK/Draven_Hack
 
+⚠️ **Advertencia de Uso**
+
+Este bot ha sido desarrollado únicamente con fines educativos y de automatización personal. Al utilizarlo, aceptas que lo haces bajo tu propia responsabilidad.
+
+El creador no se hace responsable por el uso indebido, ilegal o inapropiado de esta herramienta, incluyendo —pero no limitado a— la descarga, distribución o almacenamiento de contenido sin autorización de sus respectivos propietarios.
+
+Es responsabilidad del usuario cumplir con las leyes locales, así como con los términos y condiciones de uso de plataformas como WhatsApp.
+
+El uso de este bot implica la aceptación total de estos términos.
