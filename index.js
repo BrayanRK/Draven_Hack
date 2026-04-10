@@ -79,10 +79,17 @@ function getSenderCandidates(msg) {
 }
 
 function isOwnerMessage(msg) {
-  // ✅ SOLO TUS MENSAJES (fromMe) + tu número
-  if (!msg?.key?.fromMe) return false; // Debe ser TU mensaje
-  const candidates = getSenderCandidates(msg);
-  return candidates.some((jid) => normalizeJidToNumber(jid) === OWNER_NUMBER);
+  // Si el mensaje lo enviaste tú desde tu WhatsApp
+  if (msg?.key?.fromMe) return true;
+
+  const sender =
+    msg?.key?.participant ||
+    msg?.key?.remoteJid ||
+    "";
+
+  const number = normalizeJidToNumber(sender);
+
+  return number === OWNER_NUMBER;
 }
 
 async function startBot() {
