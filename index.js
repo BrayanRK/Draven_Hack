@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import readline from "readline";
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
@@ -11,9 +12,15 @@ import qrcode from "qrcode-terminal";
 
 const SESSION_DIR = "./auth_info";
 const COMMANDS_DIR = path.join(process.cwd(), "commands");
+const OWNER_NUMBER = "573223090406"; // Tu número sin +
 
-// TU NÚMERO OWNER, sin +
-const OWNER_NUMBER = "573223090406";
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const question = (text) =>
+  new Promise((resolve) => rl.question(text, resolve));
 
 async function loadCommands() {
   const commands = new Map();
@@ -22,7 +29,9 @@ async function loadCommands() {
     fs.mkdirSync(COMMANDS_DIR, { recursive: true });
   }
 
-  const files = fs.readdirSync(COMMANDS_DIR).filter(file => file.endsWith(".js"));
+  const files = fs.readdirSync(COMMANDS_DIR).filter((file) =>
+    file.endsWith(".js")
+  );
 
   for (const file of files) {
     const fullPath = path.join(COMMANDS_DIR, file);
@@ -54,7 +63,7 @@ function getTextMessage(msg) {
 }
 
 function normalizeJidToNumber(jid = "") {
-  return String(jid).split("@")[0].replace(/D/g, "");
+  return String(jid).split("@")[0].replace(/\D/g, "");
 }
 
 function getSenderCandidates(msg) {
@@ -70,22 +79,22 @@ function getSenderCandidates(msg) {
 }
 
 function isOwnerMessage(msg) {
-  // si el mensaje es enviado por la cuenta vinculada, es del owner
-  if (msg?.key?.fromMe) return true;
-
+  // ✅ SOLO TUS MENSAJES (fromMe) + tu número
+  if (!msg?.key?.fromMe) return false; // Debe ser TU mensaje
   const candidates = getSenderCandidates(msg);
-  return candidates.some(jid => normalizeJidToNumber(jid) === OWNER_NUMBER);
+  return candidates.some((jid) => normalizeJidToNumber(jid) === OWNER_NUMBER);
 }
 
 async function startBot() {
   const commands = await loadCommands();
+  console.log(
+    "✅ Comandos cargados:",
+    [...new Set([...commands.values()].map((c) => c.name))].join(", ")
+  );
+
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
   const { version } = await fetchLatestBaileysVersion();
 
-  console.log(
-    "✅ Comandos cargados:",
-    [...new Set([...commands.values()].map(c => c.name))].join(", ")
-  );
   console.log("✅ Usando versión WA:", version);
 
   const logger = pino({ level: "silent" });
@@ -96,41 +105,73 @@ async function startBot() {
     browser: Browsers.ubuntu("Chrome"),
     logger,
     auth: state,
-    printQRInTerminal: false,
+    printQRInTerminal: false, // Necesario para código
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", (update) => {
+  sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect, qr } = update;
+
+    if (connection === "connecting") {
+      console.log("⏳ Conectando...");
+      return;
+    }
 
     if (qr) {
       console.clear();
       console.log("📲 Escanea este QR con WhatsApp > Dispositivos vinculados");
       qrcode.generate(qr, { small: true });
-    }
-
-    if (connection === "connecting") {
-      console.log("⏳ Conectando...");
+      return;
     }
 
     if (connection === "open") {
-      console.log("✅ Bot conectado");
+      console.log("✅ Bot conectado y listo!");
+      return;
     }
 
     if (connection === "close") {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
       console.log("❌ Conexión cerrada. Reconectar:", shouldReconnect);
-
       if (shouldReconnect) {
         setTimeout(() => startBot(), 3000);
       } else {
-        console.log("⚠️ Sesión cerrada. Borra auth_info si quieres volver a vincular.");
+        console.log("⚠️ Sesión cerrada. Borra auth_info si quieres reconectar.");
       }
+      return;
     }
   });
+
+  // 🚀 NUEVO: Menú QR o Código
+  if (!state.creds.registered) {
+    const choice = await question(
+      "🔐 ¿Cómo conectar? (1=QR, 2=Código): "
+    );
+
+    if (choice === "2") {
+      // Código de pairing
+      const phone = await question(
+        "📱 Tu número (solo dígitos, ej: 573223090406): "
+      );
+      try {
+        const code = await sock.requestPairingCode(phone);
+        console.clear();
+        console.log(`\n🔑 CÓDIGO DE VINCULACIÓN: ${code}\n`);
+        console.log(
+          "📱 En WhatsApp > Dispositivos vinculados > Vincular con número de teléfono"
+        );
+        console.log("⏳ Esperando confirmación...");
+      } catch (e) {
+        console.log("❌ Error generando código:", e.message);
+        rl.close();
+        return;
+      }
+    } else {
+      // QR (tu código original)
+      console.log("📲 Esperando QR...");
+    }
+  }
 
   sock.ev.on("messages.upsert", async ({ messages }) => {
     const msg = messages[0];
@@ -139,9 +180,13 @@ async function startBot() {
     const body = getTextMessage(msg).trim();
     if (!body.startsWith(".")) return;
 
-    if (!isOwnerMessage(msg)) return;
+    // ✅ VERIFICACIÓN ESTRICTA: SOLO TUS MENSAJES
+    if (!isOwnerMessage(msg)) {
+      console.log("🚫 Comando ignorado: no es del owner");
+      return;
+    }
 
-    const [rawCmd, ...args] = body.slice(1).trim().split(/s+/);
+    const [rawCmd, ...args] = body.slice(1).trim().split(/\s+/);
     const commandName = rawCmd?.toLowerCase();
     if (!commandName) return;
 
@@ -149,14 +194,10 @@ async function startBot() {
     if (!command) return;
 
     try {
-      console.log(`🟡 Ejecutando comando: ${commandName}`);
-      console.log("👤 fromMe:", msg.key?.fromMe);
-      console.log("👤 sender candidates:", getSenderCandidates(msg));
-      console.log("📍 chat:", msg.key?.remoteJid);
-
+      console.log(`🟡 Ejecutando: ${commandName} por owner`);
       await command.run(sock, msg, args, msg.key.remoteJid);
     } catch (e) {
-      console.log(`❌ Error en comando ${commandName}:`, e?.message || e);
+      console.log(`❌ Error en ${commandName}:`, e?.message || e);
     }
   });
 }

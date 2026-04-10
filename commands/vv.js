@@ -1,12 +1,24 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import {
   downloadMediaMessage,
   normalizeMessageContent,
 } from "@whiskeysockets/baileys";
 
-const DOWNLOAD_DIR = path.join(process.env.HOME, "storage/shared/DravenHack");
-const TEMP_DIR = path.join(process.env.HOME, "storage/shared/DravenTemp");
+const homeDir = os.homedir();
+
+const isTermux =
+  process.platform === "android" ||
+  homeDir.includes("/data/data/com.termux/files/home");
+
+const DOWNLOAD_DIR = isTermux
+  ? path.join(homeDir, "storage", "shared", "DravenHack")
+  : path.join(homeDir, "DravenHack");
+
+const TEMP_DIR = isTermux
+  ? path.join(homeDir, "storage", "shared", "DravenTemp")
+  : path.join(homeDir, "DravenTemp");
 
 if (!fs.existsSync(DOWNLOAD_DIR)) {
   fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
