@@ -29,28 +29,46 @@ async function loadCommands() {
     fs.mkdirSync(COMMANDS_DIR, { recursive: true });
   }
 
-  const files = fs.readdirSync(COMMANDS_DIR).filter((file) =>
-    file.endsWith(".js")
-  );
-
-  for (const file of files) {
-    const fullPath = path.join(COMMANDS_DIR, file);
-    const module = await import(`file://${fullPath}`);
-    const cmd = module.default;
-
-    if (!cmd?.name || typeof cmd.run !== "function") continue;
-
-    commands.set(cmd.name, cmd);
-
-    if (Array.isArray(cmd.aliases)) {
-      for (const alias of cmd.aliases) {
-        commands.set(alias, cmd);
+  // ESTO ES LO QUE HACE LA MAGIA DE LEER SUB-CARPETAS
+  const getFiles = (dir) => {
+    let results = [];
+    const list = fs.readdirSync(dir, { withFileTypes: true });
+    for (const item of list) {
+      const res = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        results = results.concat(getFiles(res)); // Si es carpeta, entra
+      } else if (item.isFile() && item.name.endsWith(".js")) {
+        results.push(res); // Si es archivo, lo guarda
       }
+    }
+    return results;
+  };
+
+  const files = getFiles(COMMANDS_DIR); // Ahora lee TODO
+
+  for (const fullPath of files) {
+    try {
+      // Usamos pathToFileURL para que Windows no de problemas de rutas
+      const module = await import(`file://${fullPath}?update=${Date.now()}`);
+      const cmd = module.default;
+
+      if (!cmd?.name || typeof cmd.run !== "function") continue;
+
+      commands.set(cmd.name, cmd);
+
+      if (Array.isArray(cmd.aliases)) {
+        for (const alias of cmd.aliases) {
+          commands.set(alias, cmd);
+        }
+      }
+    } catch (e) {
+      console.log(`❌ Error cargando comando en ${fullPath}:`, e.message);
     }
   }
 
   return commands;
 }
+
 
 function getTextMessage(msg) {
   return (

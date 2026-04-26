@@ -1,36 +1,41 @@
 # 🏴‍☠️ Draven_Hack
 
 > Bot de WhatsApp basado en **Baileys** para recuperar archivos de “ver una sola vez” (foto, video y audio) y guardarlos en el almacenamiento del dispositivo.  
-> Basado en la librería [Baileys](https://github.com/whiskeysockets/Baileys).
 
 ---
 
 ## 🚀 Características
 
-Draven_Hack te permite recuperar cualquier contenido de “ver una sola vez” y guardarlo localmente sin dejar rastro en el chat.
+Draven_Hack recupera contenido de “ver una sola vez” y lo guarda localmente de forma silenciosa.
 
-- Recupera:
-  - Imágenes de ver una vez
-  - Videos de ver una vez
-  - Audios de ver una vez
-- Guarda automáticamente en:
-
+- **Recupera:** Imágenes, Videos y Audios de "View Once".
+- **Sistema Modular:** Estructura organizada por subcarpetas de comandos.
+- **Acceso Restringido:** Solo el número configurado como **Owner** puede ejecutar comandos.
+- **Auto-Guardado:** Los archivos se almacenan en:
   ```text
   storage/shared/DravenHack/
+  ```
 
-## 🚀 Características
+---
 
-- Recupera:
-  - Imágenes de ver una vez
-  - Videos de ver una vez
-  - Audios de ver una vez
-- Guarda automáticamente en:
+## 📂 Estructura del Proyecto
+
+
+```text
+Draven_Hack/
+├── auth_info/          # Sesión de WhatsApp (No compartir)
+├── commands/           # Carpeta de comandos modulares
+│   ├── Añadidor_de_Aliases/
+│   │   └── addalias.js # Gestionar aliases desde WA
+│   ├── menu/
+│   │   └── menu.js     # Menú automático e inteligente
+│   └── View_Once/
+│       └── vv.js       # Comando principal de recuperación
+├── storage/            # Carpeta de salida de archivos (Android)
+├── index.js            # Punto de entrada del bot
+├── package.json        # Dependencias
+└── README.md           # Documentación
 ```
-storage/shared/DravenHack/
-```
-- Funcionamiento silencioso (no envía nada al chat)
-- Sistema modular (index.js + commands/)
-- Acceso restringido al owner
 
 ---
 
@@ -38,30 +43,40 @@ storage/shared/DravenHack/
 
 ### 📱 Android (Termux)
 
+
+```bash
+pkg update && pkg upgrade -y
 ```
-pkg update && pkg upgrade
+
+```bash
 pkg install git nodejs -y
+```
+
+```bash
 termux-setup-storage
 ```
 
+```bash
+git clone https://github.com/BrayanRK/Draven_Hack
 ```
-cd ~
-git clone https://github.com/BrayanRK/Draven_Hack.git
+
+```bash
 cd Draven_Hack
+```
+
+```bash
 npm install
+```
+
+```bash
 node index.js
 ```
 
-Escanea el QR:
-
-WhatsApp > Menú ⋮ > Dispositivos vinculados > Vincular dispositivo
-
----
 
 ### 💻 PC (Windows / Linux)
 
-```
-git clone https://github.com/BrayanRK/Draven_Hack.git
+```bash
+git clone https://github.com/BrayanRK/Draven_Hack
 cd Draven_Hack
 npm install
 node index.js
@@ -71,132 +86,40 @@ node index.js
 
 ## 🧠 Uso
 
-### Comando principal
+### Comandos y Aliases Automáticos
 
-```
-.vv
-```
+El bot detecta automáticamente los aliases configurados en cada archivo `.js`.
 
-### Alias
-
-```
-.ver
-.viewonce
-.revelar
-```
+- **Comando principal:** `.vv` (Responde a un mensaje de ver una vez)
+- **Aliases configurados:** `.ver`, `.viewonce`, `.revelar`, `.jajaja`, `.bella`, etc.
+- **Gestión:** `.menu` para ver la lista completa actualizada.
 
 ### Flujo de uso
-
-1. Recibe un archivo de “ver una vez”
-2. Responde a ese mensaje con:
-
-```
-.vv
-```
-
-3. El archivo se guardará en:
-
-```
-storage/shared/DravenHack/
-```
-
-Ejemplo:
-
-```
-imagen_draven_1712400000000.jpg
-video_draven_1712400000000.mp4
-audio_draven_1712400000000.ogg
-```
-
-Nota: El bot no envía el archivo al chat.
+1. Recibes un archivo de “ver una vez”.
+2. Respondes a ese mensaje con `.vv` o cualquier alias.
+3. El archivo se guarda en `/storage/shared/DravenHack/` con un nombre único basado en el tiempo.
 
 ---
 
 ## ⚙️ Configuración
 
-Edita tu número en index.js:
+Edita tu número en `index.js`:
 
-```
-const OWNER_NUMBER = "573223090406";
-```
-
-Ejemplo:
-
-```
-const OWNER_NUMBER = "573001234567";
-```
-
-Formato:
-- Sin +
-- Con código de país
-
----
-
-## 📂 Estructura
-
-```
-Draven_Hack/
-├── commands/
-│   └── vv.js
-├── index.js
-├── package.json
-├── README.md
-└── .gitignore
+```javascript
+const OWNER_NUMBER = "573223090406"; // Sin + y con código de país
 ```
 
 ---
 
-## 🔐 Seguridad
+## 🔐 Seguridad y Advertencia
 
-> auth_info/ → NO subir
-> node_modules/ → ignorado
+> ⚠️ **IMPORTANTE:** Nunca subas tu carpeta `auth_info/` a GitHub, ya que contiene las llaves de acceso a tu WhatsApp.
 
-> ⚠️ Nunca subas tu carpeta `auth_info/` (sesión de WhatsApp) a GitHub.
-> El bot no responde en el chat, solo guarda los archivos.
-
----
-
-## 🛠️ Problemas comunes
-
-### No guarda archivos
-
-```
-termux-setup-storage
-```
-
-Verifica:
-
-```
-ls ~/storage/shared/DravenHack
-```
-
----
-
-### No responde
-
-- Usa .vv
-- Debe ser el número owner
-- Revisa la consola
-
----
-
-## 🧾 Licencia
-
-MIT License
+**Descargo de responsabilidad:** Este bot es para uso personal y educativo. El creador no se hace responsable por el mal uso de esta herramienta o la infracción de los términos de servicio de WhatsApp.
 
 ---
 
 ## 👨‍💻 Autor
 
-BrayanRK  
-https://github.com/BrayanRK/Draven_Hack
-
-⚠️ **Advertencia de Uso**
-
-Este bot ha sido desarrollado únicamente con fines educativos y de automatización personal. Al utilizarlo, aceptas que lo haces bajo tu propia responsabilidad.
-
-El creador no se hace responsable por el uso indebido, ilegal o inapropiado de esta herramienta, incluyendo —pero no limitado a— la descarga, distribución o almacenamiento de contenido sin autorización de sus respectivos propietarios.
-
-Es responsabilidad del usuario cumplir con las leyes locales, así como con los términos y condiciones de uso de plataformas como WhatsApp.
-
-El uso de este bot implica la aceptación total de estos términos.
+**BrayanRK**  
+[GitHub Profile](https://github.com/BrayanRK)
