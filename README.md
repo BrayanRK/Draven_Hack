@@ -15,6 +15,19 @@ Draven_Hack recupera contenido de “ver una sola vez” y lo guarda localmente 
   ```text
   storage/shared/DravenHack/
   ```
+### 🏷️ Gestión de Aliases (Personalización)
+Puedes añadir nuevos apodos a tus comandos directamente desde WhatsApp sin editar el código. El sistema sumará el nuevo alias y lo mostrará en el menú automáticamente.
+
+**Comando:**
+```bash
+.addalias [comando_base] [nuevo_alias]
+```
+
+**Ejemplos:**
+```bash
+.addalias vv ver
+.addalias menu help
+```
 
 ---
 
