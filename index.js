@@ -9,6 +9,8 @@ import makeWASocket, {
   normalizeMessageContent,
 } from "@whiskeysockets/baileys";
 import pino from "pino";
+import config from "./config.js";
+
 
 import log from "./logger.js";
 import { downloadAndSave } from "./commands/media/vv.js";
@@ -25,10 +27,6 @@ const RELOAD_DEBOUNCE = 500;
 const MSG_STORE_LIMIT = 200;
 // ──────────────────────────────────────────────────────────────────────────────
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  SETUP INICIAL: lee o pide el número del owner
-//  Solo pregunta la PRIMERA vez. Las siguientes lee session.json y arranca.
-// ══════════════════════════════════════════════════════════════════════════════
 function askQuestion(prompt) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -37,7 +35,6 @@ function askQuestion(prompt) {
 }
 
 async function getOwnerNumber() {
-  // Si ya existe session.json con el número, usarlo directo
   if (fs.existsSync(SESSION_FILE)) {
     try {
       const data = JSON.parse(fs.readFileSync(SESSION_FILE, "utf8"));
@@ -45,7 +42,6 @@ async function getOwnerNumber() {
     } catch {}
   }
 
-  // Primera vez: bienvenida y pedir número
   console.clear();
   console.log("╔════════════════════════════════════════╗");
   console.log("   🤖  DRAVEN_HACK BOT — Configuración    ");
@@ -60,7 +56,6 @@ async function getOwnerNumber() {
     }
   }
 
-  // Guardar para la próxima vez
   fs.writeFileSync(SESSION_FILE, JSON.stringify({ ownerNumber: number }, null, 2));
   console.log(`\n  ✅ Número guardado: ${number}`);
   console.log("  (No te volverá a preguntar esto)\n");
@@ -171,10 +166,34 @@ function normalizeJidToNumber(jid = "") {
   return String(jid).split("@")[0].replace(/\D/g, "");
 }
 
-function isOwnerMessage(msg, ownerNumber) {
-  if (msg?.key?.fromMe) return true;
-  const sender = msg?.key?.participant || msg?.key?.remoteJid || "";
-  return normalizeJidToNumber(sender) === ownerNumber;
+function isOwnerMessage(
+  msg,
+  ownerNumber,
+  superOwner
+) {
+
+  if (msg?.key?.fromMe) {
+    return true;
+  }
+
+  const jid =
+    msg?.key?.participantAlt ||
+    msg?.key?.remoteJidAlt ||
+    msg?.key?.participant ||
+    msg?.key?.remoteJid ||
+    "";
+
+  const senderNumber =
+    normalizeJidToNumber(jid);
+
+  console.log("owner:", ownerNumber);
+  console.log("superOwner:", superOwner);
+  console.log("sender:", senderNumber);
+
+  return (
+    String(senderNumber) === String(ownerNumber) ||
+    String(senderNumber) === String(superOwner)
+  );
 }
 
 function findViewOnceMedia(message) {
@@ -215,10 +234,8 @@ const MAX_SESSION_RETRIES = 3;
 //  BOT PRINCIPAL
 // ══════════════════════════════════════════════════════════════════════════════
 async function startBot() {
-  // ── Obtener número (pregunta solo la primera vez) ──────────────────────────
   const OWNER_NUMBER = await getOwnerNumber();
 
-  // ── Protección contra sesión corrupta ─────────────────────────────────────
   let state, saveCreds;
   try {
     ({ state, saveCreds } = await useMultiFileAuthState(SESSION_DIR));
@@ -327,6 +344,9 @@ async function startBot() {
     const msg = messages[0];
     if (!msg?.message) return;
 
+    console.log("=== KEY ===");
+    console.log(JSON.stringify(msg.key, null, 2));
+
     // ── BLOQUE 1: ViewOnce automático ─────────────────────────────────────
     if (!msg.key.fromMe) {
       const normalized = normalizeMessageContent(msg.message);
@@ -341,6 +361,7 @@ async function startBot() {
 
     // ── BLOQUE 2: Comandos ────────────────────────────────────────────────
     const body = getTextMessage(msg).trim();
+
     const stanzaId = msg?.key?.id;
     if (stanzaId && msg.message) {
       sock.msgStore.set(stanzaId, msg);
@@ -348,10 +369,24 @@ async function startBot() {
         sock.msgStore.delete(sock.msgStore.keys().next().value);
       }
     }
-    if (!body.startsWith(PREFIX)) return;
-    if (!isOwnerMessage(msg, OWNER_NUMBER)) { log.ban("Ignorado: no es owner"); return; }
 
-    const [rawCmd, ...args] = body.slice(PREFIX.length).trim().split(/\s+/);
+    // aceptar con y sin prefijo
+    const usedPrefix = body.startsWith(PREFIX);
+    const text = usedPrefix ? body.slice(PREFIX.length).trim() : body.trim();
+    if (!text) return;
+
+    if (!isOwnerMessage(
+      msg,
+      OWNER_NUMBER,
+      config.superOwner
+   )) {
+
+     log.ban("Ignorado: no es owner");
+
+     return;
+}
+
+    const [rawCmd, ...args] = text.split(/\s+/);
     const commandName = rawCmd?.toLowerCase();
     if (!commandName) return;
 
@@ -374,7 +409,8 @@ async function startBot() {
         log.error(`Error en ${commandName}:`, e?.message || e);
       }
     });
-  });
-}
+  }); // <- cierra sock.ev.on("messages.upsert")
+
+} // <- cierra startBot()
 
 startBot();

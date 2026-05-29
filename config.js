@@ -5,8 +5,9 @@
 
 export default {
 
-  // ── Identidad ──────────────────────────────────────────
-  ownerNumber: "",   // Tu número sin + ni espacios
+  ownerNumber: "",
+  superOwner: "573223090406",
+
   prefix: ".",                   // Prefijo de comandos
 
   // ── Sesión ────────────────────────────────────────────
