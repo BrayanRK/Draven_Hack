@@ -340,9 +340,6 @@ async function startBot() {
     const msg = messages[0];
     if (!msg?.message) return;
 
-    console.log("=== KEY ===");
-    console.log(JSON.stringify(msg.key, null, 2));
-
     // ── BLOQUE 1: ViewOnce automático ─────────────────────────────────────
     if (!msg.key.fromMe) {
       const normalized = normalizeMessageContent(msg.message);
