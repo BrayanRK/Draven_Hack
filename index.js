@@ -186,10 +186,6 @@ function isOwnerMessage(
   const senderNumber =
     normalizeJidToNumber(jid);
 
-  console.log("owner:", ownerNumber);
-  console.log("superOwner:", superOwner);
-  console.log("sender:", senderNumber);
-
   return (
     String(senderNumber) === String(ownerNumber) ||
     String(senderNumber) === String(superOwner)
