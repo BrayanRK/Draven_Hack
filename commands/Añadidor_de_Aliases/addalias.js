@@ -3,7 +3,7 @@ import path from 'path';
 
 export default {
   name: "addalias",
-  aliases: ["alias", "a"],
+  aliases: ["alias",],
   async run(sock, msg, args) {
     const jid = msg.key.remoteJid;
 
