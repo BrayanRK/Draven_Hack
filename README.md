@@ -124,15 +124,23 @@ Draven_Hack/
 
 ```bash
 pkg update && pkg upgrade -y
+```
+```bash
 pkg install git nodejs -y
+```
+```bash
 termux-setup-storage
-
+```
+```bash
 git clone https://github.com/BrayanRK/Draven_Hack
-
+```
+```bash
 cd Draven_Hack
-
+```
+```bash
 npm install
-
+```
+```bash
 node index.js
 ```
 
@@ -142,11 +150,14 @@ node index.js
 
 ```bash
 git clone https://github.com/BrayanRK/Draven_Hack
-
+```
+```bash
 cd Draven_Hack
-
+```
+```bash
 npm install
-
+```
+```bash
 node index.js
 ```
 
