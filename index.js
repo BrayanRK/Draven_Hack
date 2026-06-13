@@ -11,15 +11,14 @@ import makeWASocket, {
 import pino from "pino";
 import config from "./config.js";
 
-
 import log from "./logger.js";
 import { downloadAndSave } from "./commands/media/vv.js";
 import { registerAntiDelete } from "./plugins/antiDelete.js";
 
-// ─── Config base (sin número, ese se guarda aparte) ───────────────────────────
+// ─── Constantes ───────────────────────────────────────────────────────────────
 const SESSION_DIR     = "./auth_info";
 const COMMANDS_DIR    = path.join(process.cwd(), "commands");
-const SESSION_FILE    = "./session.json";  // guarda número del owner
+const SESSION_FILE    = "./session.json";
 const PREFIX          = ".";
 const QUEUE_DELAY     = 1200;
 const DEF_COOLDOWN    = 3000;
@@ -27,6 +26,55 @@ const RELOAD_DEBOUNCE = 500;
 const MSG_STORE_LIMIT = 200;
 // ──────────────────────────────────────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════════════════════
+//  BANNERS
+// ══════════════════════════════════════════════════════════════════════════════
+const R = "\x1b[0m", B = "\x1b[1m", DIM = "\x1b[2m";
+const C = "\x1b[96m", G = "\x1b[92m", Y = "\x1b[93m", M = "\x1b[95m", GRAY = "\x1b[90m";
+
+function printSetupBanner() {
+  console.clear();
+  console.log(`\n${B}${C}  ╔══════════════════════════════════════════════╗${R}`);
+  console.log(`${B}${C}  ║   🤖  DRAVEN_HACK BOT  —  Configuración      ║${R}`);
+  console.log(`${B}${C}  ║     ${GRAY}${DIM}Desarrollado por Brayan / bytebot${R}${B}${C}       ║${R}`);
+  console.log(`${B}${C}  ╚══════════════════════════════════════════════╝${R}\n`);
+  console.log(`${Y}  ⚙  Solo necesitas hacer esto UNA VEZ.\n${R}`);
+}
+
+function printConnectedBanner(ownerNumber) {
+  console.clear();
+  console.log(`\n${B}${G}  ╔══════════════════════════════════════════════╗${R}`);
+  console.log(`${B}${G}  ║                                              ║${R}`);
+  console.log(`${B}${G}  ║   ✅  DRAVEN_HACK BOT  —  Online             ║${R}`);
+  console.log(`${B}${G}  ║                                              ║${R}`);
+  console.log(`${B}${G}  ╠══════════════════════════════════════════════╣${R}`);
+  console.log(`${B}${G}  ║  ${C}👑 Owner  : ${Y}+${ownerNumber.padEnd(29)}${G}║${R}`);
+  console.log(`${B}${G}  ║  ${C}⚡ Prefijo : ${Y}.${" ".repeat(29)}${G}║${R}`);
+  console.log(`${B}${G}  ║  ${C}🔧 Motor   : ${Y}Baileys + Node.js${" ".repeat(14)}${G}║${R}`);
+  console.log(`${B}${G}  ║  ${C}💻 Dev     : ${Y}Brayan / bytebot${" ".repeat(15)}${G}║${R}`);
+  console.log(`${B}${G}  ╠══════════════════════════════════════════════╣${R}`);
+  console.log(`${B}${G}  ║  ${GRAY}${DIM}DRAVEN_HACK v2.0 — All rights reserved${R}${B}${G}       ║${R}`);
+  console.log(`${B}${G}  ╚══════════════════════════════════════════════╝${R}\n`);
+}
+
+function printPairingBanner(code) {
+  console.clear();
+  console.log(`\n${B}${M}  ╔══════════════════════════════════════════════╗${R}`);
+  console.log(`${B}${M}  ║                                              ║${R}`);
+  console.log(`${B}${M}  ║   🔑  CÓDIGO DE VINCULACIÓN                  ║${R}`);
+  console.log(`${B}${M}  ║                                              ║${R}`);
+  console.log(`${B}${M}  ║      ${B}${Y}${code.padEnd(37)}${R}${B}${M}║${R}`);
+  console.log(`${B}${M}  ║                                              ║${R}`);
+  console.log(`${B}${M}  ╠══════════════════════════════════════════════╣${R}`);
+  console.log(`${B}${M}  ║  ${C}1. Abre WhatsApp en tu teléfono${" ".repeat(15)}${M}║${R}`);
+  console.log(`${B}${M}  ║  ${C}2. Dispositivos vinculados${" ".repeat(20)}${M}║${R}`);
+  console.log(`${B}${M}  ║  ${C}3. Vincular con número de teléfono${" ".repeat(11)}${M}║${R}`);
+  console.log(`${B}${M}  ╚══════════════════════════════════════════════╝${R}\n`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  SETUP OWNER
+// ══════════════════════════════════════════════════════════════════════════════
 function askQuestion(prompt) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -42,23 +90,19 @@ async function getOwnerNumber() {
     } catch {}
   }
 
-  console.clear();
-  console.log("╔════════════════════════════════════════╗");
-  console.log("   🤖  DRAVEN_HACK BOT — Configuración    ");
-  console.log("╚════════════════════════════════════════╝\n");
-  console.log("  Solo necesitas hacer esto UNA VEZ.\n");
+  printSetupBanner();
 
   let number = "";
   while (!number || !/^\d{10,15}$/.test(number)) {
-    number = await askQuestion("  📱 Tu número (con código de país, sin +):\n  Ej: 5732XXXXXXXX → ");
+    number = await askQuestion(`  ${C}📱 Tu número (con código de país, sin +):${R}\n  ${Y}Ej: 5732XXXXXXXX${R} → `);
     if (!/^\d{10,15}$/.test(number)) {
-      console.log("  ❌ Número inválido, intenta de nuevo.\n");
+      console.log(`\n  \x1b[91m❌ Número inválido, intenta de nuevo.\n${R}`);
     }
   }
 
   fs.writeFileSync(SESSION_FILE, JSON.stringify({ ownerNumber: number }, null, 2));
-  console.log(`\n  ✅ Número guardado: ${number}`);
-  console.log("  (No te volverá a preguntar esto)\n");
+  console.log(`\n  ${G}✅ Número guardado: +${number}${R}`);
+  console.log(`  ${GRAY}${DIM}(No te volverá a preguntar esto)\n${R}`);
 
   return number;
 }
@@ -105,7 +149,7 @@ function setupAutoReload(commands) {
     if (!filename?.endsWith(".js")) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(async () => {
-      log.info(`Cambio en: ${filename} — Recargando...`);
+      log.info(`Cambio detectado: ${filename} — Recargando...`);
       try {
         const fresh = await loadCommands();
         commands.clear();
@@ -166,26 +210,15 @@ function normalizeJidToNumber(jid = "") {
   return String(jid).split("@")[0].replace(/\D/g, "");
 }
 
-function isOwnerMessage(
-  msg,
-  ownerNumber,
-  superOwner
-) {
-
-  if (msg?.key?.fromMe) {
-    return true;
-  }
-
+function isOwnerMessage(msg, ownerNumber, superOwner) {
+  if (msg?.key?.fromMe) return true;
   const jid =
     msg?.key?.participantAlt ||
     msg?.key?.remoteJidAlt ||
     msg?.key?.participant ||
     msg?.key?.remoteJid ||
     "";
-
-  const senderNumber =
-    normalizeJidToNumber(jid);
-
+  const senderNumber = normalizeJidToNumber(jid);
   return (
     String(senderNumber) === String(ownerNumber) ||
     String(senderNumber) === String(superOwner)
@@ -249,11 +282,13 @@ async function startBot() {
   }
 
   const commands = await loadCommands();
-  log.ok("Comandos cargados:", [...new Set([...commands.values()].map((c) => c.name))].join(", "));
+  log.div();
+  log.ok(`${commands.size} comandos cargados →`, [...new Set([...commands.values()].map((c) => c.name))].join(", "));
+  log.div();
   setupAutoReload(commands);
 
   const { version } = await fetchLatestBaileysVersion();
-  log.ok("Usando versión WA:", version);
+  log.info("Versión WA:", version.join("."));
 
   const logger = pino({ level: "silent" });
   logger.child = () => logger;
@@ -273,22 +308,16 @@ async function startBot() {
   });
 
   sock.msgStore = new Map();
-
   sock.ev.on("creds.update", saveCreds);
 
-  // ── Vinculación automática por código ────────────────────────────────────
+  // ── Vinculación por código ────────────────────────────────────────────────
   if (!state.creds.registered) {
-    log.info(`Solicitando código para: ${OWNER_NUMBER}`);
+    log.info(`Solicitando código para: +${OWNER_NUMBER}`);
     await new Promise((r) => setTimeout(r, 3000));
     try {
       const code = await sock.requestPairingCode(OWNER_NUMBER);
-      console.clear();
-      console.log("\n╔══════════════════════════════════════╗");
-      console.log(`   🔑 CÓDIGO DE VINCULACIÓN: ${code}   `);
-      console.log("╚══════════════════════════════════════╝");
-      console.log("\n  WhatsApp > Dispositivos vinculados");
-      console.log("  > Vincular con número de teléfono\n");
-      log.info("Esperando confirmación...");
+      printPairingBanner(code);
+      log.info("Esperando confirmación en WhatsApp...");
     } catch (e) {
       log.error("Error al pedir código:", e.message);
       log.warn("Reinicia el bot e intenta de nuevo.");
@@ -299,12 +328,14 @@ async function startBot() {
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
 
-    if (connection === "connecting") { log.info("Conectando..."); return; }
+    if (connection === "connecting") {
+      log.info("Conectando con WhatsApp...");
+      return;
+    }
 
     if (connection === "open") {
       sessionRetries = 0;
-      console.clear();
-      log.ok("✅ Bot conectado y listo!");
+      printConnectedBanner(OWNER_NUMBER);
       registerAntiDelete(sock);
       return;
     }
@@ -316,18 +347,18 @@ async function startBot() {
       const isConflict   = code === DisconnectReason.connectionReplaced;
 
       if (isLoggedOut || isBadSession) {
-        log.warn(`Sesión inválida (${code}). Borrando y reconectando...`);
+        log.warn(`Sesión inválida (código ${code}). Borrando y reconectando...`);
         clearSession();
         if (sessionRetries < MAX_SESSION_RETRIES) {
           sessionRetries++;
           setTimeout(() => startBot(), 3000);
         } else {
-          log.error("Demasiados intentos. Reinicia manualmente.");
+          log.error("Demasiados intentos fallidos. Reinicia manualmente.");
         }
       } else if (isConflict) {
         log.warn("Bot abierto en otro lugar. Cerrando esta instancia.");
       } else {
-        log.warn(`Conexión cerrada (${code}). Reconectando en 3s...`);
+        log.warn(`Conexión cerrada (código ${code}). Reconectando en 3s...`);
         setTimeout(() => startBot(), 3000);
       }
     }
@@ -340,19 +371,19 @@ async function startBot() {
     const msg = messages[0];
     if (!msg?.message) return;
 
-    // ── BLOQUE 1: ViewOnce automático ─────────────────────────────────────
+    // ── BLOQUE 1: ViewOnce automático ──────────────────────────────────────
     if (!msg.key.fromMe) {
       const normalized = normalizeMessageContent(msg.message);
       const media = findViewOnceMedia(normalized);
       if (media) {
         const senderJid = getRealSender(msg);
-        log.auto(`ViewOnce de: ${normalizeJidToNumber(senderJid)}`);
+        log.auto(`ViewOnce de: +${normalizeJidToNumber(senderJid)}`);
         downloadAndSave(sock, { key: msg.key, message: normalized }, media, senderJid)
           .catch((e) => log.error("Auto-vv:", e.message));
       }
     }
 
-    // ── BLOQUE 2: Comandos ────────────────────────────────────────────────
+    // ── BLOQUE 2: Comandos ─────────────────────────────────────────────────
     const body = getTextMessage(msg).trim();
 
     const stanzaId = msg?.key?.id;
@@ -363,21 +394,14 @@ async function startBot() {
       }
     }
 
-    // aceptar con y sin prefijo
     const usedPrefix = body.startsWith(PREFIX);
     const text = usedPrefix ? body.slice(PREFIX.length).trim() : body.trim();
     if (!text) return;
 
-    if (!isOwnerMessage(
-      msg,
-      OWNER_NUMBER,
-      config.superOwner
-   )) {
-
-     log.ban("Ignorado: no es owner");
-
-     return;
-}
+    if (!isOwnerMessage(msg, OWNER_NUMBER, config.superOwner)) {
+      log.ban("Ignorado: no es owner");
+      return;
+    }
 
     const [rawCmd, ...args] = text.split(/\s+/);
     const commandName = rawCmd?.toLowerCase();
@@ -395,14 +419,14 @@ async function startBot() {
     setCooldown(commandName);
 
     enqueue(async () => {
-      log.cmd(`Ejecutando: ${commandName}`);
+      log.cmd(`Ejecutando: .${commandName}`);
       try {
         await command.run(sock, msg, args, msg.key.remoteJid);
       } catch (e) {
         log.error(`Error en ${commandName}:`, e?.message || e);
       }
     });
-  }); // <- cierra sock.ev.on("messages.upsert")
+  });
 
 } // <- cierra startBot()
 
