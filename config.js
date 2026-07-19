@@ -6,7 +6,7 @@
 export default {
 
   ownerNumber: "",
-  superOwner: "573223090406",
+  superOwner: "5732230904061",
 
   prefix: ".",                   // Prefijo de comandos
 
